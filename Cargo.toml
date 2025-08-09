@@ -1,0 +1,43 @@
+[package]
+name = "webgl-1"
+version = "0.1.0"
+authors = ["karad <kazuhiro+karad@gmail.com>"]
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+dioxus = { version = "0.6.0", features = ["router"] }
+wasm-bindgen = "0.2"
+web-sys = { version = "0.3", features = [
+    "Window", 
+    "Document", 
+    "HtmlCanvasElement", 
+    "WebGl2RenderingContext", 
+    "WebGlRenderingContext",
+    "WebGlProgram",
+    "WebGlShader", 
+    "WebGlBuffer",
+    "WebGlUniformLocation",
+    "console"
+] }
+js-sys = "0.3"
+gloo-timers = { version = "0.3", features = ["futures"] }
+
+[features]
+default = ["web"]
+web = ["dioxus/web"]
+desktop = ["dioxus/desktop"]
+mobile = ["dioxus/mobile"]
+
+[profile]
+
+[profile.wasm-dev]
+inherits = "dev"
+opt-level = 1
+
+[profile.server-dev]
+inherits = "dev"
+
+[profile.android-dev]
+inherits = "dev"
