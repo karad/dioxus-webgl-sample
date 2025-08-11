@@ -40,9 +40,6 @@ fn main() {
     dioxus::launch(app);
 }
 
-// WebGL initialization flag
-static WEBGL_INITIALIZED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
-
 fn app() -> Element {
     let mut canvas_mounted = use_signal(|| false);
 
