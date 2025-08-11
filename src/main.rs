@@ -4,18 +4,9 @@ use web_sys::{HtmlCanvasElement, WebGl2RenderingContext};
 use std::rc::Rc;
 use std::cell::RefCell;
 
-// 透視投影行列
-// fn perspective_matrix(fov: f32, aspect: f32, near: f32, far: f32) -> [f32; 16] {
-//     let f = 1.0 / (fov / 2.0).tan();
-//     [
-//         f / aspect, 0.0, 0.0, 0.0,
-//         0.0, f, 0.0, 0.0,
-//         0.0, 0.0, (far + near) / (near - far), -1.0,
-//         0.0, 0.0, (2.0 * far * near) / (near - far), 0.0,
-//     ]
-// }
-
-// Y軸回転行列
+/**
+ * Y-axis rotation matrix
+ */
 fn rotation_matrix_y(angle: f32) -> [f32; 16] {
     let (s, c) = angle.sin_cos();
     [
@@ -26,30 +17,7 @@ fn rotation_matrix_y(angle: f32) -> [f32; 16] {
     ]
 }
 
-// 移動行列
-// fn translation_matrix(x: f32, y: f32, z: f32) -> [f32; 16] {
-//     [
-//         1.0, 0.0, 0.0, 0.0,
-//         0.0, 1.0, 0.0, 0.0,
-//         0.0, 0.0, 1.0, 0.0,
-//         x, y, z, 1.0,
-//     ]
-// }
-
-// 行列の乗算
-// fn multiply_matrices(a: &[f32; 16], b: &[f32; 16]) -> [f32; 16] {
-//     let mut result = [0.0; 16];
-//     for i in 0..4 {
-//         for j in 0..4 {
-//             for k in 0..4 {
-//                 result[i * 4 + j] += a[i * 4 + k] * b[k * 4 + j];
-//             }
-//         }
-//     }
-//     result
-// }
-
-// シェーダ
+// Vertex shader
 const VERT: &str = r#"
 attribute vec3 position;
 attribute vec3 color;
@@ -61,6 +29,7 @@ void main() {
 }
 "#;
 
+// Fragment shader
 const FRAG: &str = r#"
 precision mediump float;
 varying vec3 vColor;
@@ -69,11 +38,12 @@ void main() {
 }
 "#;
 
-// 起動エントリ
+// Entry point
 fn main() {
     dioxus::launch(app);
 }
 
+// WebGL initialization flag
 static WEBGL_INITIALIZED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
 
 fn app() -> Element {
@@ -87,7 +57,7 @@ fn app() -> Element {
         spawn(async move {
             gloo_timers::future::TimeoutFuture::new(50).await;
             
-            // 一度だけ実行されるように静的な制御
+            // Ensure it runs only once (static control)
             static INIT_ONCE: std::sync::Once = std::sync::Once::new();
             let mut should_init = false;
             
@@ -117,22 +87,22 @@ fn app() -> Element {
                 .dyn_into::<WebGl2RenderingContext>()
                 .unwrap();
 
-            // WebGL初期設定
+            // Initial WebGL setup
             canvas.set_width(480);
             canvas.set_height(480);
             gl.viewport(0, 0, 480, 480);
-            // 深度テストは無効のまま（立方体を確実に表示するため）
+            // Keep depth test disabled (ensure the cube is always visible)
             gl.disable(WebGl2RenderingContext::DEPTH_TEST);
             gl.disable(WebGl2RenderingContext::CULL_FACE);
             
             web_sys::console::log_1(&"WebGL context configured".into());
 
-            // シェーダー作成とコンパイル
+            // Create and compile shaders
             let vert_shader = gl.create_shader(WebGl2RenderingContext::VERTEX_SHADER).unwrap();
             gl.shader_source(&vert_shader, VERT);
             gl.compile_shader(&vert_shader);
             
-            // 頂点シェーダーのコンパイル結果をチェック
+            // Check vertex shader compilation result
             if !gl.get_shader_parameter(&vert_shader, WebGl2RenderingContext::COMPILE_STATUS).as_bool().unwrap_or(false) {
                 let log = gl.get_shader_info_log(&vert_shader).unwrap_or_default();
                 web_sys::console::error_1(&format!("Vertex shader compilation error: {}", log).into());
@@ -143,20 +113,20 @@ fn app() -> Element {
             gl.shader_source(&frag_shader, FRAG);
             gl.compile_shader(&frag_shader);
             
-            // フラグメントシェーダーのコンパイル結果をチェック
+            // Check fragment shader compilation result
             if !gl.get_shader_parameter(&frag_shader, WebGl2RenderingContext::COMPILE_STATUS).as_bool().unwrap_or(false) {
                 let log = gl.get_shader_info_log(&frag_shader).unwrap_or_default();
                 web_sys::console::error_1(&format!("Fragment shader compilation error: {}", log).into());
                 return;
             }
 
-            // プログラム作成とリンク
+            // Create and link program
             let program = gl.create_program().unwrap();
             gl.attach_shader(&program, &vert_shader);
             gl.attach_shader(&program, &frag_shader);
             gl.link_program(&program);
             
-            // プログラムのリンク結果をチェック
+            // Check program link result
             if !gl.get_program_parameter(&program, WebGl2RenderingContext::LINK_STATUS).as_bool().unwrap_or(false) {
                 let log = gl.get_program_info_log(&program).unwrap_or_default();
                 web_sys::console::error_1(&format!("Program linking error: {}", log).into());
@@ -167,37 +137,37 @@ fn app() -> Element {
 
             web_sys::console::log_1(&"Shaders compiled and program linked".into());
 
-            // 立方体の頂点データ（確実に見える適度なサイズ）
+            // Cube vertex data (moderate size to ensure visibility)
             let vertices: [f32; 24] = [
-                // 前面の4つの頂点（Z=0.2）
+                // Four front-face vertices (Z=0.2)
                 -0.4, -0.4,  0.2,   0.4, -0.4,  0.2,   0.4,  0.4,  0.2,  -0.4,  0.4,  0.2,
-                // 後面の4つの頂点（Z=-0.2）
+                // Four back-face vertices (Z=-0.2)
                 -0.4, -0.4, -0.2,   0.4, -0.4, -0.2,   0.4,  0.4, -0.2,  -0.4,  0.4, -0.2,
             ];
             
             let colors: [f32; 24] = [
-                // 前面の色
+                // Front face colors
                 1.0, 0.0, 0.0,  0.0, 1.0, 0.0,  0.0, 0.0, 1.0,  1.0, 1.0, 0.0,
-                // 後面の色
+                // Back face colors
                 1.0, 0.0, 1.0,  0.0, 1.0, 1.0,  1.0, 1.0, 1.0,  0.5, 0.5, 0.5,
             ];
             
             let indices: [u16; 36] = [
-                // 前面
+                // Front
                 0, 1, 2,  2, 3, 0,
-                // 後面（時計回り）
+                // Back (clockwise)
                 4, 6, 5,  6, 4, 7,
-                // 左面
+                // Left
                 4, 0, 3,  3, 7, 4,
-                // 右面
+                // Right
                 1, 5, 6,  6, 2, 1,
-                // 上面
+                // Top
                 3, 2, 6,  6, 7, 3,
-                // 下面
+                // Bottom
                 4, 5, 1,  1, 0, 4,
             ];
 
-            // 頂点バッファ
+            // Vertex buffer
             let pos_buffer = gl.create_buffer().unwrap();
             gl.bind_buffer(WebGl2RenderingContext::ARRAY_BUFFER, Some(&pos_buffer));
             unsafe {
@@ -209,7 +179,7 @@ fn app() -> Element {
                 );
             }
 
-            // カラーバッファ
+            // Color buffer
             let color_buffer = gl.create_buffer().unwrap();
             gl.bind_buffer(WebGl2RenderingContext::ARRAY_BUFFER, Some(&color_buffer));
             unsafe {
@@ -221,7 +191,7 @@ fn app() -> Element {
                 );
             }
 
-            // インデックスバッファ
+            // Index buffer
             let index_buffer = gl.create_buffer().unwrap();
             gl.bind_buffer(WebGl2RenderingContext::ELEMENT_ARRAY_BUFFER, Some(&index_buffer));
             unsafe {
@@ -233,7 +203,7 @@ fn app() -> Element {
                 );
             }
 
-            // 属性の設定
+            // Attribute setup
             let pos_loc = gl.get_attrib_location(&program, "position");
             let color_loc = gl.get_attrib_location(&program, "color");
             
@@ -257,7 +227,7 @@ fn app() -> Element {
 
             web_sys::console::log_1(&"Buffers and attributes configured".into());
 
-            // アニメーションループ
+            // Animation loop
             let animation_loop = Rc::new(RefCell::new(None::<Closure<dyn FnMut()>>));
             let animation_loop_clone = animation_loop.clone();
             let angle = Rc::new(RefCell::new(0.0f32));
@@ -276,18 +246,18 @@ fn app() -> Element {
                         web_sys::console::log_1(&format!("Rendering frame {}, angle: {:.2}", count, current_angle).into());
                     }
                     
-                    // 背景をクリア（深度バッファは使用しない）
+                    // Clear background (do not use depth buffer)
                     gl.clear_color(0.1, 0.1, 0.1, 1.0);
                     gl.clear(WebGl2RenderingContext::COLOR_BUFFER_BIT);
 
-                    // シンプルな回転行列のみ（確実に動作する設定）
+                    // Simple rotation matrix only (reliable setting)
                     let model = rotation_matrix_y(current_angle);
                     
-                    // ユニフォーム変数に行列を渡す
+                    // Pass matrix to the uniform variable
                     let loc = gl.get_uniform_location(&program, "modelViewMatrix");
                     gl.uniform_matrix4fv_with_f32_array(loc.as_ref(), false, &model);
 
-                    // 描画
+                    // Draw
                     gl.bind_buffer(WebGl2RenderingContext::ELEMENT_ARRAY_BUFFER, Some(&index_buffer));
                     gl.draw_elements_with_i32(
                         WebGl2RenderingContext::TRIANGLES,
@@ -296,17 +266,17 @@ fn app() -> Element {
                         0,
                     );
                     
-                    // WebGLエラーをチェック
+                    // Check WebGL errors
                     let error = gl.get_error();
                     if error != WebGl2RenderingContext::NO_ERROR {
                         web_sys::console::error_1(&format!("WebGL error: {}", error).into());
                     }
                     
-                    // 角度を更新
+                    // Update angle
                     current_angle += 0.02;
                     *angle.borrow_mut() = current_angle;
 
-                    // 次のフレーム
+                    // Next frame
                     web_sys::window()
                         .unwrap()
                         .request_animation_frame(
@@ -316,7 +286,7 @@ fn app() -> Element {
                 }
             }) as Box<dyn FnMut()>));
 
-            // アニメーション開始
+            // Start animation
             web_sys::window()
                 .unwrap()
                 .request_animation_frame(
