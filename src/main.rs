@@ -5,15 +5,15 @@ use std::rc::Rc;
 use std::cell::RefCell;
 
 // 透視投影行列
-fn perspective_matrix(fov: f32, aspect: f32, near: f32, far: f32) -> [f32; 16] {
-    let f = 1.0 / (fov / 2.0).tan();
-    [
-        f / aspect, 0.0, 0.0, 0.0,
-        0.0, f, 0.0, 0.0,
-        0.0, 0.0, (far + near) / (near - far), -1.0,
-        0.0, 0.0, (2.0 * far * near) / (near - far), 0.0,
-    ]
-}
+// fn perspective_matrix(fov: f32, aspect: f32, near: f32, far: f32) -> [f32; 16] {
+//     let f = 1.0 / (fov / 2.0).tan();
+//     [
+//         f / aspect, 0.0, 0.0, 0.0,
+//         0.0, f, 0.0, 0.0,
+//         0.0, 0.0, (far + near) / (near - far), -1.0,
+//         0.0, 0.0, (2.0 * far * near) / (near - far), 0.0,
+//     ]
+// }
 
 // Y軸回転行列
 fn rotation_matrix_y(angle: f32) -> [f32; 16] {
@@ -27,27 +27,27 @@ fn rotation_matrix_y(angle: f32) -> [f32; 16] {
 }
 
 // 移動行列
-fn translation_matrix(x: f32, y: f32, z: f32) -> [f32; 16] {
-    [
-        1.0, 0.0, 0.0, 0.0,
-        0.0, 1.0, 0.0, 0.0,
-        0.0, 0.0, 1.0, 0.0,
-        x, y, z, 1.0,
-    ]
-}
+// fn translation_matrix(x: f32, y: f32, z: f32) -> [f32; 16] {
+//     [
+//         1.0, 0.0, 0.0, 0.0,
+//         0.0, 1.0, 0.0, 0.0,
+//         0.0, 0.0, 1.0, 0.0,
+//         x, y, z, 1.0,
+//     ]
+// }
 
 // 行列の乗算
-fn multiply_matrices(a: &[f32; 16], b: &[f32; 16]) -> [f32; 16] {
-    let mut result = [0.0; 16];
-    for i in 0..4 {
-        for j in 0..4 {
-            for k in 0..4 {
-                result[i * 4 + j] += a[i * 4 + k] * b[k * 4 + j];
-            }
-        }
-    }
-    result
-}
+// fn multiply_matrices(a: &[f32; 16], b: &[f32; 16]) -> [f32; 16] {
+//     let mut result = [0.0; 16];
+//     for i in 0..4 {
+//         for j in 0..4 {
+//             for k in 0..4 {
+//                 result[i * 4 + j] += a[i * 4 + k] * b[k * 4 + j];
+//             }
+//         }
+//     }
+//     result
+// }
 
 // シェーダ
 const VERT: &str = r#"
@@ -71,12 +71,12 @@ void main() {
 
 // 起動エントリ
 fn main() {
-    dioxus::launch(App);
+    dioxus::launch(app);
 }
 
 static WEBGL_INITIALIZED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
 
-fn App() -> Element {
+fn app() -> Element {
     let mut canvas_mounted = use_signal(|| false);
     
     use_effect(move || {
